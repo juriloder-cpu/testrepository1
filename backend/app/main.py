@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.database import engine, Base
-from app.api import projects, scripts, images, settings as settings_api, voiceovers
+from app.api import projects, scripts, images, settings as settings_api, voiceovers, waveform
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -28,6 +28,7 @@ app.include_router(scripts.router)
 app.include_router(images.router)
 app.include_router(settings_api.router)
 app.include_router(voiceovers.router)
+app.include_router(waveform.router)
 
 
 @app.get("/")

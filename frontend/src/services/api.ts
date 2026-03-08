@@ -78,4 +78,22 @@ export const settingsApi = {
   delete: (key: string) => api.delete(`/api/settings/${key}`),
 };
 
+// Waveform
+export const waveformApi = {
+  convert: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post<{ file_id: string; filename: string; message: string }>(
+      '/api/waveform/convert',
+      formData,
+      {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 300000,
+      }
+    );
+  },
+  getDownloadUrl: (fileId: string, filename: string) =>
+    `${API_URL}/api/waveform/download/${fileId}?filename=${encodeURIComponent(filename)}`,
+};
+
 export default api;

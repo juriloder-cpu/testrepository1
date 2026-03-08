@@ -5,6 +5,7 @@ import {
   FaFileAlt,
   FaImage,
   FaMicrophone,
+  FaWaveSquare,
   FaCog
 } from 'react-icons/fa';
 
@@ -17,6 +18,7 @@ const Sidebar = () => {
     { path: '/scripts', label: 'Scripts', icon: FaFileAlt },
     { path: '/images', label: 'Images', icon: FaImage },
     { path: '/voiceovers', label: 'Voice Overs', icon: FaMicrophone },
+    { path: '/waveform', label: 'Waveform', icon: FaWaveSquare },
     { path: '/settings', label: 'Settings', icon: FaCog },
   ];
 
