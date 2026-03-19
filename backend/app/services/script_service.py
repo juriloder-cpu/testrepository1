@@ -17,13 +17,16 @@ async def generate_script_with_ai(
         if not api_key:
             raise ValueError("Anthropic API key not configured in settings")
 
-        client = anthropic.Anthropic(api_key=api_key)
+        client = anthropic.Anthropic(
+            api_key=api_key,
+            timeout=300.0  # 5 minutes timeout for long scripts
+        )
 
         prompt = _build_script_prompt(request)
 
         message = client.messages.create(
-            model="claude-sonnet-4-20250514",
-            max_tokens=4000,
+            model="claude-opus-4-20250514",
+            max_tokens=8000,
             messages=[{"role": "user", "content": prompt}]
         )
 
@@ -111,7 +114,10 @@ Respond in this exact JSON format:
         if not api_key:
             raise ValueError("Anthropic API key not configured in settings")
 
-        client = anthropic.Anthropic(api_key=api_key)
+        client = anthropic.Anthropic(
+            api_key=api_key,
+            timeout=120.0  # 2 minutes timeout
+        )
 
         message = client.messages.create(
             model="claude-sonnet-4-20250514",

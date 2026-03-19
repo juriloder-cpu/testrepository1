@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
-import { FaPlus, FaEdit, FaTrash, FaFolder } from 'react-icons/fa';
-import { projectsApi } from '../services/api';
+import { FaPlus, FaEdit, FaTrash, FaFolder, FaFileAlt, FaImage } from 'react-icons/fa';
+import { projectsApi, scriptsApi, imagesApi } from '../services/api';
 import { Project } from '../types';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorMessage from '../components/ErrorMessage';
@@ -12,6 +12,7 @@ const Projects = () => {
   const [error, setError] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [projectCounts, setProjectCounts] = useState<Record<number, { scripts: number; images: number }>>({});
   const [formData, setFormData] = useState({
     name: '',
     description: ''
@@ -27,6 +28,26 @@ const Projects = () => {
       setError(null);
       const response = await projectsApi.getAll();
       setProjects(response.data);
+
+      // Fetch counts for each project
+      const counts: Record<number, { scripts: number; images: number }> = {};
+      await Promise.all(
+        response.data.map(async (project) => {
+          try {
+            const [scriptsRes, imagesRes] = await Promise.all([
+              scriptsApi.getAll(project.id),
+              imagesApi.getAll(project.id)
+            ]);
+            counts[project.id] = {
+              scripts: scriptsRes.data.length,
+              images: imagesRes.data.length
+            };
+          } catch (err) {
+            counts[project.id] = { scripts: 0, images: 0 };
+          }
+        })
+      );
+      setProjectCounts(counts);
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to load projects');
     } finally {
@@ -145,6 +166,18 @@ const Projects = () => {
               {project.description && (
                 <p className="text-gray-600 text-sm mb-4 line-clamp-2">{project.description}</p>
               )}
+
+              {/* Project Stats */}
+              <div className="flex gap-4 mb-4">
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <FaFileAlt className="text-purple-600" />
+                  <span>{projectCounts[project.id]?.scripts || 0} scripts</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <FaImage className="text-green-600" />
+                  <span>{projectCounts[project.id]?.images || 0} images</span>
+                </div>
+              </div>
 
               <div className="flex gap-2 pt-4 border-t border-gray-200">
                 <button
