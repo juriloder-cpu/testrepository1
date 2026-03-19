@@ -65,10 +65,13 @@ export const imagesApi = {
   getById: (id: number) => api.get<Image>(`/api/images/${id}`),
   generatePrompts: (scriptId: number) =>
     api.post<{ prompts: ImagePrompt[] }>('/api/images/generate-prompts', null, {
-      params: { script_id: scriptId }
+      params: { script_id: scriptId, _t: Date.now() },
+      headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }
     }),
   generate: (data: ImageGenerateRequest) =>
-    api.post<Image[]>('/api/images/generate', data),
+    api.post<Image[]>('/api/images/generate', data, {
+      headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }
+    }),
   download: (id: number) =>
     api.get(`/api/images/${id}/download`, { responseType: 'blob' }),
   downloadAll: (projectId: number) =>

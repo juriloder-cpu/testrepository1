@@ -24,9 +24,16 @@ const Images = () => {
     prompts: ['']
   });
 
+  // Fetch projects only once on mount
   useEffect(() => {
     fetchProjects();
-    fetchImages();
+  }, []);
+
+  // Fetch images when selected project changes
+  useEffect(() => {
+    if (selectedProject !== null) {
+      fetchImages();
+    }
   }, [selectedProject]);
 
   const fetchProjects = async () => {
