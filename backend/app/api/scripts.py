@@ -7,7 +7,7 @@ from app.models.script import Script
 from app.schemas.script import (
     ScriptCreate, ScriptUpdate, ScriptResponse, ScriptGenerateRequest
 )
-from app.services.script_service import generate_script_with_ai, export_script
+from app.services.script_service import generate_script_with_ai, generate_video_description, export_script
 import os
 from app.core.config import settings
 
@@ -78,6 +78,26 @@ async def generate_script(
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error generating script: {str(e)}")
+
+
+@router.post("/{script_id}/generate-description")
+async def generate_description(
+    script_id: int,
+    provider: str = "claude",
+    db: Session = Depends(get_db)
+):
+    """Generate a YouTube video title, description, and tags from a script."""
+    script = db.query(Script).filter(Script.id == script_id).first()
+    if not script:
+        raise HTTPException(status_code=404, detail="Script not found")
+
+    try:
+        result = await generate_video_description(db, script.content, provider)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error generating description: {str(e)}")
 
 
 @router.put("/{script_id}", response_model=ScriptResponse)

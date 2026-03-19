@@ -47,6 +47,12 @@ export const scriptsApi = {
       params: { format },
       responseType: 'blob',
     }),
+  generateDescription: (id: number, provider: string = 'claude') =>
+    api.post<{ title: string; description: string; tags: string }>(
+      `/api/scripts/${id}/generate-description`,
+      null,
+      { params: { provider } }
+    ),
 };
 
 // Images

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
-import { FaPlus, FaRobot, FaDownload, FaEdit, FaTrash, FaFileAlt } from 'react-icons/fa';
+import { FaPlus, FaRobot, FaDownload, FaEdit, FaTrash, FaFileAlt, FaYoutube } from 'react-icons/fa';
 import { scriptsApi, projectsApi } from '../services/api';
 import { Script, Project } from '../types';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -16,6 +16,10 @@ const Scripts = () => {
   const [showAIModal, setShowAIModal] = useState(false);
   const [generatingAI, setGeneratingAI] = useState(false);
   const [editingScript, setEditingScript] = useState<Script | null>(null);
+  const [showDescriptionModal, setShowDescriptionModal] = useState(false);
+  const [generatingDescription, setGeneratingDescription] = useState(false);
+  const [descriptionResult, setDescriptionResult] = useState<{ title: string; description: string; tags: string } | null>(null);
+  const [descriptionScriptId, setDescriptionScriptId] = useState<number | null>(null);
 
   const [formData, setFormData] = useState({
     project_id: 0,
@@ -175,6 +179,29 @@ const Scripts = () => {
     }
   };
 
+  const handleGenerateDescription = async (scriptId: number) => {
+    setDescriptionScriptId(scriptId);
+    setDescriptionResult(null);
+    setShowDescriptionModal(true);
+
+    try {
+      setGeneratingDescription(true);
+      const response = await scriptsApi.generateDescription(scriptId, 'claude');
+      setDescriptionResult(response.data);
+      toast.success('Video description generated!');
+    } catch (err: any) {
+      toast.error(err.response?.data?.detail || 'Failed to generate description');
+      setShowDescriptionModal(false);
+    } finally {
+      setGeneratingDescription(false);
+    }
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success('Copied to clipboard!');
+  };
+
   if (loading && scripts.length === 0) {
     return <LoadingSpinner message="Loading scripts..." />;
   }
@@ -297,6 +324,13 @@ const Scripts = () => {
                   >
                     <FaEdit />
                     Edit
+                  </button>
+                  <button
+                    onClick={() => handleGenerateDescription(script.id)}
+                    className="flex items-center gap-2 px-3 py-2 text-sm bg-red-50 text-red-700 rounded-lg hover:bg-red-100"
+                  >
+                    <FaYoutube />
+                    Description
                   </button>
                   <button
                     onClick={() => handleExport(script.id, 'txt')}
@@ -531,6 +565,116 @@ const Scripts = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Video Description Modal */}
+      {showDescriptionModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
+          <div className="bg-white rounded-lg p-8 max-w-3xl w-full mx-4 my-8">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold flex items-center gap-2">
+                <FaYoutube className="text-red-600" />
+                YouTube Video Description
+              </h2>
+              <button
+                onClick={() => setShowDescriptionModal(false)}
+                className="text-gray-500 hover:text-gray-700 text-xl"
+              >
+                &times;
+              </button>
+            </div>
+
+            {generatingDescription ? (
+              <div className="flex flex-col items-center justify-center py-12">
+                <div className="w-10 h-10 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mb-4" />
+                <p className="text-gray-600">Generating video description with Claude...</p>
+              </div>
+            ) : descriptionResult ? (
+              <div className="space-y-6">
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="block text-sm font-semibold text-gray-700">Title</label>
+                    <button
+                      onClick={() => copyToClipboard(descriptionResult.title)}
+                      className="text-xs text-blue-600 hover:text-blue-800"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                    <p className="text-gray-900 font-medium">{descriptionResult.title}</p>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="block text-sm font-semibold text-gray-700">Description</label>
+                    <button
+                      onClick={() => copyToClipboard(descriptionResult.description)}
+                      className="text-xs text-blue-600 hover:text-blue-800"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg p-3 border border-gray-200 max-h-64 overflow-y-auto">
+                    <pre className="whitespace-pre-wrap font-sans text-sm text-gray-700">
+                      {descriptionResult.description}
+                    </pre>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="block text-sm font-semibold text-gray-700">Tags</label>
+                    <button
+                      onClick={() => copyToClipboard(descriptionResult.tags)}
+                      className="text-xs text-blue-600 hover:text-blue-800"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                    <div className="flex flex-wrap gap-2">
+                      {descriptionResult.tags.split(',').map((tag, i) => (
+                        <span
+                          key={i}
+                          className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
+                        >
+                          {tag.trim()}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      const full = `${descriptionResult.title}\n\n${descriptionResult.description}\n\nTags: ${descriptionResult.tags}`;
+                      copyToClipboard(full);
+                    }}
+                    className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center justify-center gap-2"
+                  >
+                    Copy All
+                  </button>
+                  <button
+                    onClick={() => descriptionScriptId && handleGenerateDescription(descriptionScriptId)}
+                    className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 flex items-center justify-center gap-2"
+                  >
+                    <FaRobot />
+                    Regenerate
+                  </button>
+                  <button
+                    onClick={() => setShowDescriptionModal(false)}
+                    className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
       )}

@@ -22,7 +22,7 @@ async def generate_script_with_ai(
         prompt = _build_script_prompt(request)
 
         message = client.messages.create(
-            model="claude-3-5-sonnet-20241022",
+            model="claude-sonnet-4-20250514",
             max_tokens=4000,
             messages=[{"role": "user", "content": prompt}]
         )
@@ -80,6 +80,86 @@ Narration text here...
 Make it suitable for AI-generated voiceover and images."""
 
     return prompt
+
+
+async def generate_video_description(db: Session, script_content: str, provider: str = "claude") -> dict:
+    """Generate a YouTube video title, description, and tags from a script."""
+
+    prompt = f"""Based on the following video script, generate a YouTube-optimized:
+1. **Title** - Catchy, SEO-friendly, under 100 characters
+2. **Description** - Engaging YouTube description (200-300 words) with:
+   - A compelling hook in the first 2 lines
+   - Summary of what the video covers
+   - Timestamps placeholder
+   - Call to action (like, subscribe, comment)
+3. **Tags** - 15-20 relevant YouTube tags as a comma-separated list
+
+Script content:
+---
+{script_content[:8000]}
+---
+
+Respond in this exact JSON format:
+{{
+  "title": "Your video title here",
+  "description": "Full YouTube description here",
+  "tags": "tag1, tag2, tag3, ..."
+}}"""
+
+    if provider == "claude":
+        api_key = get_setting_value(db, "ANTHROPIC_API_KEY")
+        if not api_key:
+            raise ValueError("Anthropic API key not configured in settings")
+
+        client = anthropic.Anthropic(api_key=api_key)
+
+        message = client.messages.create(
+            model="claude-sonnet-4-20250514",
+            max_tokens=2000,
+            messages=[{"role": "user", "content": prompt}]
+        )
+
+        return _parse_description_response(message.content[0].text)
+
+    elif provider == "openai":
+        api_key = get_setting_value(db, "OPENAI_API_KEY")
+        if not api_key:
+            raise ValueError("OpenAI API key not configured in settings")
+
+        client = openai.OpenAI(api_key=api_key)
+
+        response = client.chat.completions.create(
+            model="gpt-4-turbo-preview",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=2000
+        )
+
+        return _parse_description_response(response.choices[0].message.content)
+
+    else:
+        raise ValueError(f"Unsupported AI provider: {provider}")
+
+
+def _parse_description_response(text: str) -> dict:
+    """Parse the AI response into structured description data."""
+    import json
+
+    # Try to parse as JSON directly
+    try:
+        # Find JSON block in the response
+        start = text.find('{')
+        end = text.rfind('}') + 1
+        if start != -1 and end > start:
+            return json.loads(text[start:end])
+    except json.JSONDecodeError:
+        pass
+
+    # Fallback: return raw text as description
+    return {
+        "title": "Generated Video",
+        "description": text,
+        "tags": ""
+    }
 
 
 def export_script(script: Script, format: str = "txt") -> str:
