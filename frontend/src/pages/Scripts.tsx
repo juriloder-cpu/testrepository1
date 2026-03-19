@@ -20,6 +20,7 @@ const Scripts = () => {
   const [generatingDescription, setGeneratingDescription] = useState(false);
   const [descriptionResult, setDescriptionResult] = useState<{ title: string; description: string; tags: string } | null>(null);
   const [descriptionScriptId, setDescriptionScriptId] = useState<number | null>(null);
+  const [descriptionRequestId, setDescriptionRequestId] = useState<number>(0);
 
   const [formData, setFormData] = useState({
     project_id: 0,
@@ -184,14 +185,31 @@ const Scripts = () => {
     setDescriptionResult(null);
     setShowDescriptionModal(true);
 
+    // Generate a unique request ID to prevent race conditions
+    const currentRequestId = Date.now();
+    setDescriptionRequestId(currentRequestId);
+
     try {
       setGeneratingDescription(true);
       const response = await scriptsApi.generateDescription(scriptId, 'claude');
-      setDescriptionResult(response.data);
-      toast.success('Video description generated!');
+
+      // Only update if this is still the most recent request
+      setDescriptionRequestId(prev => {
+        if (prev === currentRequestId) {
+          setDescriptionResult(response.data);
+          toast.success('Video description generated!');
+        }
+        return prev;
+      });
     } catch (err: any) {
-      toast.error(err.response?.data?.detail || 'Failed to generate description');
-      setShowDescriptionModal(false);
+      // Only show error if this is still the most recent request
+      setDescriptionRequestId(prev => {
+        if (prev === currentRequestId) {
+          toast.error(err.response?.data?.detail || 'Failed to generate description');
+          setShowDescriptionModal(false);
+        }
+        return prev;
+      });
     } finally {
       setGeneratingDescription(false);
     }

@@ -51,7 +51,10 @@ export const scriptsApi = {
     api.post<{ title: string; description: string; tags: string }>(
       `/api/scripts/${id}/generate-description`,
       null,
-      { params: { provider } }
+      {
+        params: { provider, _t: Date.now() },
+        headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }
+      }
     ),
 };
 
